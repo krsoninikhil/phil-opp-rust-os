@@ -10,12 +10,28 @@ fn panic(_info: &PanicInfo) -> ! {
     loop {}
 }
 
+// text to print on screen
+static DISPLAY_TEXT: &[u8] = b"Hello World!";
+
 // entry point function, since on linux, linker looks for function
 // named `_start` by default, on macOS, linker looks for `main`
-// function; to preserve the function name, name mangling needs to
+// function; so change this function name to `main` if compiling on
+// macOS; to preserve the function name, name mangling needs to
 // disabled for this function
 #[no_mangle]
 pub extern "C" fn _start() -> ! {
-    // change this function name to `main` if compiling on macOS
+    // raw pointer to VGA buffer, content of which will be displayed
+    // on screen
+    let vga_buffer = 0xb8000 as *mut u8;
+
+    // update vga_buffer with desired bytes; each character cell of
+    // this buffer consists of an ASCII byte and a color byte
+    for (i, &byte) in DISPLAY_TEXT.iter().enumerate() {
+        unsafe {
+            *vga_buffer.offset(i as isize * 2) = byte;
+            *vga_buffer.offset(i as isize * 2 + 1) = 0xb;
+        }
+    }
+
     loop {}
 }
