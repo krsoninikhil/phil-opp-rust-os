@@ -52,6 +52,15 @@
 - `unsafe` block of code or function can do operations which are not
   allowed by compiler like derefencing raw pointers and accessing or
   modifying mutable static variable.
+- No implicity type casting in Rust. Can be done explicitly using
+  `as`.
+- `trait`s are almost like `interface`s in Golang or Java except
+  `trait` can have default implementation. `impl` keyword is used to
+  implement a `trait` `for` a `struct`. `impl` can also implement a
+  `struct` without specifying a `trait`, just like Golang.
+- Default implementation of some traits can be used as a implentation
+  for a `struct` by using `derive` attribute. It's like interitence.
+  e.g. `#[derive(Copy)]`.
 
 ## Implementation
 
@@ -104,7 +113,7 @@
 - Now our binary has a bare metal target.
 - Use VGA text buffer in entrypoint function to print text on screen.
 - Allow `bootloader` crate to load our kernel by adding it as dependency.
-- Create a bootable disk image by combining bootloader and
+- Create a bootable disk image by combining `bootloader` and
   kernel. `bootimage` tool can do this.
 
   ```bash
@@ -118,6 +127,11 @@
   `target/target-triple/debug/bootimage-phil-opp-rust-os.bin` file can
   be written to a USB and can be booted on real machine.
 
+### Post 3 (VGA Text Mode)
+
+- To support text formating later on, refactor code for writing to VGA
+  buffer in a separate module with a safe interface to write and hiding
+  all unsafe operations.
 
 [0]: https://en.wikipedia.org/wiki/Power-on_self-test
 [1]: https://wiki.osdev.org/Multiboot
