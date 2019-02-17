@@ -1,13 +1,17 @@
 #![no_std]  // don't link std library as we won't have it
 #![no_main]  // don't call main as we need to define our own entry point
 
-mod vga_buffer;
 use core::panic::PanicInfo;
+use core::fmt::Write;
+
+mod vga_buffer;
 
 // called on panic, required because std is not linked and it won't
 // compile w/o it
 #[panic_handler]
-fn panic(_info: &PanicInfo) -> ! {
+fn panic(info: &PanicInfo) -> ! {
+    println!("{}", info);
+
     loop {}
 }
 
@@ -18,7 +22,12 @@ fn panic(_info: &PanicInfo) -> ! {
 // disabled for this function
 #[no_mangle]
 pub extern "C" fn _start() -> ! {
-    let display_text = "Hello World!";
-    vga_buffer::write_vga(display_text);
+    vga_buffer::WRITER.lock().write_byte(b'H');
+    vga_buffer::WRITER.lock().write_string("ello ");
+    vga_buffer::WRITER.lock().write_str("World! \n").unwrap();
+    write!(vga_buffer::WRITER.lock(), "Some numbers {}, {} \n", 42, 1.0/3.0).unwrap();
+    print!("This is printed using {} macro.\n", "print!");
+    println!("This is printed using {} macro. New line auto added.", "println!");
+
     loop {}
 }

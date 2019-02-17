@@ -25,6 +25,8 @@
   to emulate same operation on normal integers.
 - **VGA Buffers:** Special memory area mapped to VGA hardware which
   contains the content displayed on the screen.
+- **Spinlock:** Basic mutex that instead of blocking, threads tries
+  locking again and again untill mutex if is free again.
 
 ## Rust
 
@@ -61,6 +63,18 @@
 - Default implementation of some traits can be used as a implentation
   for a `struct` by using `derive` attribute. It's like interitence.
   e.g. `#[derive(Copy)]`.
+- Compiler might optimize and omit the memory writes that are not
+  accessed.
+- Specifying memory writes as `volatile` tells compiler that value
+  might change from somewhere else and should not be optimized.
+- As of now, raw pointers can not be referenced in static objects.
+  `lazy_static` crate can does this by computing pointer value only at
+  runtime.
+- `#[macro_export]` attribute brings macro to crate root and make it
+  available to other modules and crates.
+- Macro variable `$crate` expands in a way so macros can be directly
+  used in same or external crate without breaking underlying function
+  usage path.
 
 ## Implementation
 
@@ -132,6 +146,23 @@
 - To support text formating later on, refactor code for writing to VGA
   buffer in a separate module with a safe interface to write and hiding
   all unsafe operations.
+- To make buffer writes `volatile`, add `volatile` crate as dependency
+  and use that instead of directly writing.
+- To use Rust built-in formatting macros (`write`, `writeln!`),
+  implement `write_str` method of `core::fmt::Write` trait in our
+  writer object.
+- Adding newline in buffer can be done by shifting all values by 1 row
+  and fill last row with whitespaces.
+- To make our writer object available globally, add `lazy_static` as
+  dependency specifying aobut `no_std` and make writer static using
+  it.
+- To make `writer` writable, add `spin` crate as dependency and use
+  spinlock to make it mutable as mutable static are unsafe and
+  discouraged.
+- Implement `_print` function to write using `Writer` object and use
+  that to implement `print!` macro and then `println!`.
+- Now `println!` can be used directly in `_start`.
+
 
 [0]: https://en.wikipedia.org/wiki/Power-on_self-test
 [1]: https://wiki.osdev.org/Multiboot

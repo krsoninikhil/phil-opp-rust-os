@@ -1,3 +1,10 @@
+use core::fmt;
+use core::fmt::Write;
+
+use volatile::Volatile;
+use spin::Mutex;
+use lazy_static::lazy_static;
+
 const BUFFER_HEIGHT: usize = 25;
 const BUFFER_WIDTH: usize = 80;
 
@@ -29,24 +36,50 @@ impl Writer {
                 }
 
                 let row = BUFFER_HEIGHT - 1;
-                self.buffer.chars[row][self.column_position] = ScreenChar {
+                self.buffer.chars[row][self.column_position].write(ScreenChar {
                     ascii_character: byte,
                     color_code: self.color_code
-                };
+                });
                 self.column_position += 1;
             }
         }
     }
 
     fn new_line(&mut self) {
-        // TODO
+        for row in 1..BUFFER_HEIGHT {
+            for col in 0..BUFFER_WIDTH {
+                let char_cell = self.buffer.chars[row][col].read();
+                self.buffer.chars[row - 1][col].write(char_cell);
+            }
+        }
+        self.clear_line(BUFFER_HEIGHT - 1);
+        self.column_position = 0;
+    }
+
+    fn clear_line(&mut self, row: usize) {
+        let blank = ScreenChar {
+                ascii_character: b' ',
+                color_code: self.color_code
+        };
+        for col in 0..BUFFER_WIDTH {
+            self.buffer.chars[row][col].write(blank);
+        }
+    }
+}
+
+impl fmt::Write for Writer {
+    fn write_str(&mut self, s: &str) -> fmt::Result {
+        self.write_string(s);
+        Ok(())
     }
 }
 
 
 #[repr(transparent)]
 struct Buffer {
-    chars: [[ScreenChar; BUFFER_WIDTH]; BUFFER_HEIGHT],
+    // either implement volatile writes for ScreenChar or use Volatile
+    // crate instead
+    chars: [[Volatile<ScreenChar>; BUFFER_WIDTH]; BUFFER_HEIGHT],
 }
 
 
@@ -91,12 +124,25 @@ pub enum Color {
     White = 15,
 }
 
-
-pub fn write_vga(text: &str) {
-    let mut writer = Writer {
+lazy_static! {  // computes static object at runtime
+    pub static ref WRITER: Mutex<Writer> = Mutex::new(Writer {  // mutex (spinlock), make object safely mutable
         column_position: 0,
         color_code: ColorCode::new(Color::Yellow, Color::Black),
         buffer: unsafe { &mut *(0xb8000 as *mut Buffer) },
-    };
-    writer.write_string(text);
+    });
+}
+
+#[macro_export]  // to make macro available at crate root
+macro_rules! println {
+    () => ($crate::print!("\n"));  // use $crate to use this macro without importing `print` too
+    ($($arg:tt)*) => ($crate::print!("{}\n", format_args!($($arg)*)));
+}
+
+#[macro_export]
+macro_rules! print {
+    ($($arg:tt)*) => ($crate::vga_buffer::_print(format_args!($($arg)*)));
+}
+
+pub fn _print(args: fmt::Arguments) {
+    WRITER.lock().write_fmt(args).unwrap();
 }
