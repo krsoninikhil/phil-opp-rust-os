@@ -6,6 +6,7 @@ use core::panic::PanicInfo;
 use core::fmt::Write;
 
 mod vga_buffer;
+mod serial;
 
 // called on panic, required because std is not linked and it won't
 // compile w/o it
@@ -27,9 +28,24 @@ pub extern "C" fn _start() -> ! {
     vga_buffer::WRITER.lock().write_byte(b'H');
     vga_buffer::WRITER.lock().write_string("ello ");
     vga_buffer::WRITER.lock().write_str("World! \n").unwrap();
+
     write!(vga_buffer::WRITER.lock(), "Some numbers {}, {} \n", 42, 1.0/3.0).unwrap();
     print!("This is printed using {} macro.\n", "print!");
     println!("This is printed using {} macro. New line auto added.", "println!");
 
+    serial::SERIAL1.lock().write_str("Kirk to Bridge:\n").expect("Printing to serial failed");
+    serial_print!("This is printed using {} macro\n", "serial_print");
+    serial_println!("This is printed using {} macro", "serial_println");
+
+    unsafe { exit_qemu(); }
+
     loop {}
+}
+
+pub unsafe fn exit_qemu() {
+    use x86_64::instructions::port::Port;
+
+    // attach `isa-debug-exit` device on 0xf4 port while starting QEMU
+    let mut port = Port::<u8>::new(0xf4);
+    port.write(0);  // exit status will be `(passed value << 1) | 1` i.e. `1`
 }

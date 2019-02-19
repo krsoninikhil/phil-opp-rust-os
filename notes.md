@@ -27,6 +27,14 @@
   contains the content displayed on the screen.
 - **Spinlock:** Basic mutex that instead of blocking, threads tries
   locking again and again untill mutex if is free again.
+- **Serial Port**: Legacy communication port to system, preceding
+  USB. OS simulator can redirect the bytes sent over serial port to
+  host OS. ICs that implement serial interface are called UART
+  chips. These chips uses port mapped I/O.
+- Peripheral devices and CPU can communicate either via memory mapped
+  I/O like `0xb8000` for VGA buffer or port mapped I/O which uses
+  different instructions (`in`, `out`) and address space than simple
+  memory access.
 
 ## Rust
 
@@ -176,6 +184,46 @@
 - Create buffer object initialized with space character using
   `array-init` as `Volatile` doesn't have `Copy` trait.
 - Now unit testing for `write_byte` and `write_string` can be done.
+
+### Post 5 (Integration Tests)
+
+- Use serial port for testing kernel's output on target machine (OS
+  simulator) from host machine.
+- Almost all UART models are compatible with 16550 UART, so use
+  `uart_16550` crate for communicating with serial port. Add it as
+  dependency.
+- Implement a global safe interface with print macros vgfor writing to
+  serial port just like we did for writing to VGA buffer.
+- Unlike our VGA buffer writer, `uart_16550::SerialPort` writer
+  already implements `Write` trait, so don't need to implement
+  `write_str` ourselves. We use external crate in this case to avoid
+  writing assembly which is required for writing to serial port.
+- `-serial mon:stdio` option needs to be passed while starting QEMU to
+  redirect written bytes to stdout of host.
+- To be able to shutdown would require implementing complex APM or
+  ACPI, so alternatively use QEMU's feature of adding a device
+  `isa-debug-exit` at any unused port (`0xf4`) specifying port size.
+- QEMU GUI can be hidden by padding `-display none` option while
+  starting it.
+- Full command to start QEMU becomes:
+  ```bash
+  qemu-system-x86_64 \
+    -drive format=raw,file=target/x86_64-blog_os/debug/bootimage-blog_os.bin \
+    -serial mon:stdio \
+    -device isa-debug-exit,iobase=0xf4,iosize=0x04 \
+    -display none
+  ```
+  or with `bootimage`:
+  ```bash
+  bootimage run -- \
+    -serial mon:stdio \
+    -device isa-debug-exit,iobase=0xf4,iosize=0x04 \
+    -display none
+  ```
+- Write to added I/O port (`0xf4`) using `x86_64` crate. Add it as
+  dependency.
+-
+
 
 
 [0]: https://en.wikipedia.org/wiki/Power-on_self-test
