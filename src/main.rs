@@ -1,5 +1,6 @@
-#![no_std]  // don't link std library as we won't have it
-#![no_main]  // don't call main as we need to define our own entry point
+#![cfg_attr(not(test), no_std)]  // don't link std library as we won't have it
+#![cfg_attr(not(test), no_main)]  // don't call main as we need to define our own entry point
+#![cfg_attr(test, allow(unused_imports))]
 
 use core::panic::PanicInfo;
 use core::fmt::Write;
@@ -8,6 +9,7 @@ mod vga_buffer;
 
 // called on panic, required because std is not linked and it won't
 // compile w/o it
+#[cfg(not(test))]  // don't include while test flag is set
 #[panic_handler]
 fn panic(info: &PanicInfo) -> ! {
     println!("{}", info);
@@ -18,9 +20,9 @@ fn panic(info: &PanicInfo) -> ! {
 // entry point function, since on linux, linker looks for function
 // named `_start` by default, on macOS, linker looks for `main`
 // function; so change this function name to `main` if compiling on
-// macOS; to preserve the function name, name mangling needs to
-// disabled for this function
-#[no_mangle]
+// macOS
+#[cfg(not(test))]
+#[no_mangle]  // to preserve the function name, name mangling needs to disabled for this function
 pub extern "C" fn _start() -> ! {
     vga_buffer::WRITER.lock().write_byte(b'H');
     vga_buffer::WRITER.lock().write_string("ello ");

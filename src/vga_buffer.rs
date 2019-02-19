@@ -128,7 +128,7 @@ lazy_static! {  // computes static object at runtime
     pub static ref WRITER: Mutex<Writer> = Mutex::new(Writer {  // mutex (spinlock), make object safely mutable
         column_position: 0,
         color_code: ColorCode::new(Color::Yellow, Color::Black),
-        buffer: unsafe { &mut *(0xb8000 as *mut Buffer) },
+        buffer: unsafe { &mut *(0xb8000 as *mut Buffer) },  // VGA buffer is located at 0xb8000 on bare metal
     });
 }
 
@@ -145,4 +145,84 @@ macro_rules! print {
 
 pub fn _print(args: fmt::Arguments) {
     WRITER.lock().write_fmt(args).unwrap();
+}
+
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use array_init::array_init;
+
+    #[test]
+    fn write_byte() {
+        let mut writer = construct_writer();
+        writer.write_byte(b'X');
+        writer.write_byte(b'Y');
+
+        for (i, row) in writer.buffer.chars.iter().enumerate() {
+            for (j, char_cell) in row.iter().enumerate() {
+                let screen_char = char_cell.read();
+                if i == BUFFER_HEIGHT - 1 && j == 0 {
+                    assert_eq!(screen_char.ascii_character, b'X');
+                    assert_eq!(screen_char.color_code, writer.color_code);
+                } else if i == BUFFER_HEIGHT - 1 && j == 1 {
+                    assert_eq!(screen_char.ascii_character, b'Y');
+                    assert_eq!(screen_char.color_code, writer.color_code);
+                } else {
+                    assert_eq!(screen_char, empty_char());
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn write_string_fmt() {
+        let mut writer = construct_writer();
+        writer.write_string("a\n");
+        writeln!(writer, "{}", "b").unwrap();
+
+        for (i, row) in writer.buffer.chars.iter().enumerate() {
+            for (j, char_cell) in row.iter().enumerate() {
+                let screen_char = char_cell.read();
+                if i == BUFFER_HEIGHT - 3 && j == 0 {
+                    assert_eq!(screen_char.ascii_character, b'a');
+                    assert_eq!(screen_char.color_code, writer.color_code);
+                } else if i == BUFFER_HEIGHT - 2 && j == 0 {
+                    assert_eq!(screen_char.ascii_character, b'b');
+                    assert_eq!(screen_char.color_code, writer.color_code);
+                } else if i >= BUFFER_HEIGHT - 2 {
+                    assert_eq!(screen_char.ascii_character, b' ');
+                    assert_eq!(screen_char.color_code, writer.color_code);
+                } else {
+                    assert_eq!(screen_char, empty_char());
+                }
+            }
+        }
+    }
+
+    fn construct_writer() -> Writer {
+        Writer {
+            column_position: 0,
+            color_code: ColorCode::new(Color::Blue, Color::Magenta),
+            // since 0xb8000 (VGA) is only available on bare metal, we
+            // need to allocate and initialize a test buffer manually
+            buffer: Box::leak(Box::new(construct_buffer())),
+        }
+    }
+
+    fn construct_buffer() -> Buffer {
+        Buffer {
+            // chars: [[Volatile::new(empty_char()); BUFFER_WIDTH];
+            // BUFFER_HEIGHT], cannot use above line because Copy
+            // trait is implemented for Volatile wrapper
+            chars: array_init(|_| array_init(|_| Volatile::new(empty_char()))),
+        }
+    }
+
+    fn empty_char() -> ScreenChar {
+        ScreenChar {
+            ascii_character: b' ',
+            color_code: ColorCode::new(Color::Green, Color::Brown),
+        }
+    }
 }

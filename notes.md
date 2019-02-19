@@ -75,6 +75,11 @@
 - Macro variable `$crate` expands in a way so macros can be directly
   used in same or external crate without breaking underlying function
   usage path.
+- `cfg_attr` can be used to conditionally set the attributes.
+- `Box::new()` allocates heap memory pointer and `Box::leak()` takes
+  it's ref and returns mutable reference.
+- Element type of array needs to derive `Copy` trait if wish to do
+  initialization that copies the single value to all indices.
 
 ## Implementation
 
@@ -162,6 +167,15 @@
 - Implement `_print` function to write using `Writer` object and use
   that to implement `print!` macro and then `println!`.
 - Now `println!` can be used directly in `_start`.
+
+### Post 4 (Unit Testing)
+
+- Add conditional config attributes to include `std` and not include
+  `no_std` related code while executing tests as testing will be done
+  on host machine.
+- Create buffer object initialized with space character using
+  `array-init` as `Volatile` doesn't have `Copy` trait.
+- Now unit testing for `write_byte` and `write_string` can be done.
 
 
 [0]: https://en.wikipedia.org/wiki/Power-on_self-test
