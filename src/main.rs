@@ -5,8 +5,7 @@
 use core::panic::PanicInfo;
 use core::fmt::Write;
 
-mod vga_buffer;
-mod serial;
+use phil_opp_rust_os::*;
 
 // called on panic, required because std is not linked and it won't
 // compile w/o it
@@ -37,15 +36,5 @@ pub extern "C" fn _start() -> ! {
     serial_print!("This is printed using {} macro\n", "serial_print");
     serial_println!("This is printed using {} macro", "serial_println");
 
-    unsafe { exit_qemu(); }
-
     loop {}
-}
-
-pub unsafe fn exit_qemu() {
-    use x86_64::instructions::port::Port;
-
-    // attach `isa-debug-exit` device on 0xf4 port while starting QEMU
-    let mut port = Port::<u8>::new(0xf4);
-    port.write(0);  // exit status will be `(passed value << 1) | 1` i.e. `1`
 }

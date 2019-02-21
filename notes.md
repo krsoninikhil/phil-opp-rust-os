@@ -88,6 +88,10 @@
   it's ref and returns mutable reference.
 - Element type of array needs to derive `Copy` trait if wish to do
   initialization that copies the single value to all indices.
+- Cargo features table can be used to add conditions for conditionaly
+  with `cfg` attribute.
+- `cargo test` builds all crates including independent binaries.
+-
 
 ## Implementation
 
@@ -222,7 +226,20 @@
   ```
 - Write to added I/O port (`0xf4`) using `x86_64` crate. Add it as
   dependency.
--
+- Each integration test should run in isolation and using Cargo
+  features to conditionaly compile would require creating too many
+  features, so isolate each integration test in separate binary. To
+  avoid duplicating code in each binary, separate out common code from
+  main executable to a library.
+- Write each test as executable binary in `src/bin/` with result from
+  Post 1 as boilerplate. Start by testing if `_start` and `panic` are
+  working as expected.
+- To run integration test, we need to build tests, run in qemu and
+  verify output from serial port. This can be done using bootimage by:
+  ```bash
+  bootimage test
+  ```
+  This will run all binaries named as `test-*.rs`.
 
 
 
