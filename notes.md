@@ -35,11 +35,35 @@
   I/O like `0xb8000` for VGA buffer or port mapped I/O which uses
   different instructions (`in`, `out`) and address space than simple
   memory access.
+- *CPU Exceptions:* When something illegal happens like devide by 0 or
+  accessing illegal memory addresses, CPU throws [around 20 types][3]
+  of exeption e.g. Page fault, Invalid opcode, double fault, etc.
+- Handler functions for these exceptions are listed in table called
+  IDT (Interrupt Descriptor Table), in a 16 bytes predefined format at
+  predefined index.
+- *Calling conventions* specify the details of function calls like
+  where function parameters are place or how results are
+  returned. They also defines *preserved* and *scratch* registers. `C`
+  uses conventions specified in System V ABI.
+- *Preserved Registers* are backed up by the called funtion
+  i.e. _callee-saved_.
+- *Scratch Registers* are backed up by the caller function before
+  calling another function i.e. _caller-saved_.
+- Since exception handler might run in different context, an specific
+  convetion is used.
+- Exception handlers uses x86 interrupt calling conventions which
+  restores all registers values on function return to their original
+  value.
+- *Breakpoint Exception:* Defined at index 3 in IDT, it occurs when
+  `int3` instruction is executed on CPU. Debugger replaces the current
+  instruction with `int3` when breakpoint needs to be set.
+-
 
 ## Rust
 
-- For a rust binary with standard library, execution is like:
-  C runtime (`crt0`) -> rust runtime (`start` is entrypoint) -> program `main` function
+- For a rust binary with standard library, execution is like: C
+  runtime (`crt0`) -> rust runtime (`start` is entrypoint) -> program
+  `main` function
 - Linker options can be passed using `-C link-arg` option of `rustc`
   while compiling
 
@@ -91,7 +115,12 @@
 - Cargo features table can be used to add conditions for conditionaly
   with `cfg` attribute.
 - `cargo test` builds all crates including independent binaries.
--
+- Calling convention can be specified for a function e.g.
+  `extern "C" fn`.
+- `x86_64` crate provides IDT and `ExceptionStackFrame` implementation.
+- Exceptions pass exception stackframe to handler function. Some also
+  pass a error code with stackframe.
+
 
 ## Implementation
 
@@ -241,8 +270,38 @@
   ```
   This will run all binaries named as `test-*.rs`.
 
+## Post 7 (CPU Exceptions)
+
+- Use `x86_64` crate to add exception handler function to IDT. Start
+  with `breakpoint` and create a new module `interrupts` for handlers.
+- Since exception can occur at any point, IDT needs to have
+  `'static` lifetime and should be mutable, so use `lazy_static` to do
+  load it.
+- Write a integration test for testing `breakpoint` exception.
+-
+
+### Additional Notes on Rust
+
+- Variables are immutable by default.
+- Variable that holds the reference to a memory allocated in heap is
+  the owner of that memory. Memory is droped the moment variable goes
+  out of scope.
+- When a copy is made, ownership is moved to new variable and original
+  variable becomes invalid i.e. cannot access memory anymore. This
+  happens for types that doesn't implement `Copy` trait.
+- To make a deepcopy i.e. copy the allocated heap memory also, `Clone`
+  is implemented.
+- When a reference is passed to new variable, it's called borrowing
+  which is immutable by default and memory is not droped until owner
+  goes out of scope. Borrower going out of scope does nothing to owner
+  or memory.
+- At a time in a scope, only one mutable reference or borrower can exist.
+- If a allocated memory reference exist that must be owner
+  i.e. compiler ensures that no dangling pointer exists.
+
 
 
 [0]: https://en.wikipedia.org/wiki/Power-on_self-test
 [1]: https://wiki.osdev.org/Multiboot
 [2]: #os
+[3]: http://wiki.osdev.org/Exceptions

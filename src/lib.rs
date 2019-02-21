@@ -1,7 +1,9 @@
 #![cfg_attr(not(test), no_std)]  // don't link std library as we won't have it
+#![feature(abi_x86_interrupt)]
 
 pub mod vga_buffer;
 pub mod serial;
+pub mod interrupts;
 
 
 pub unsafe fn exit_qemu() {

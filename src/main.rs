@@ -36,5 +36,10 @@ pub extern "C" fn _start() -> ! {
     serial_print!("This is printed using {} macro\n", "serial_print");
     serial_println!("This is printed using {} macro", "serial_println");
 
+    interrupts::init_idt();
+
+    x86_64::instructions::int3();
+    println!("It did not crash!");
+
     loop {}
 }
