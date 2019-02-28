@@ -36,9 +36,20 @@ pub extern "C" fn _start() -> ! {
     serial_print!("This is printed using {} macro\n", "serial_print");
     serial_println!("This is printed using {} macro", "serial_println");
 
+    gdt::init();
     interrupts::init_idt();
-
     x86_64::instructions::int3();
+    println!("It did not crash on breakpoint!");
+
+    // this will cause kernel stack overflow, which will throw page
+    // fault, since we don't have a handler for that, a double page
+    // fault will be thrown; if IST is not implemented, then triple
+    // fault be thrown i.e. system will reboot
+    fn a() {
+        a();
+    }
+    a();
+
     println!("It did not crash!");
 
     loop {}

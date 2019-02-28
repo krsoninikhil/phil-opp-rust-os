@@ -37,7 +37,7 @@
   memory access.
 - *CPU Exceptions:* When something illegal happens like devide by 0 or
   accessing illegal memory addresses, CPU throws [around 20 types][3]
-  of exeption e.g. Page fault, Invalid opcode, double fault, etc.
+  of exeption e.g. Page fault, double fault, triple faults etc.
 - Handler functions for these exceptions are listed in table called
   IDT (Interrupt Descriptor Table), in a 16 bytes predefined format at
   predefined index.
@@ -54,10 +54,45 @@
 - Exception handlers uses x86 interrupt calling conventions which
   restores all registers values on function return to their original
   value.
+- Exceptions pass exception stackframe to handler function. Some also
+  pass a error code with stackframe.
 - *Breakpoint Exception:* Defined at index 3 in IDT, it occurs when
   `int3` instruction is executed on CPU. Debugger replaces the current
   instruction with `int3` when breakpoint needs to be set.
--
+- *Double fault* exception is thrown when their is error in calling
+  original exception handler i.e. a particular exception is thrown
+  after a specific exception e.g. a _page fault_ after _page fault_
+  will cause _double fault_.
+- If double fault is not handled too, fatal *triple fault* is thrown,
+  which can't be caught and most hardware react with system reset.
+- To prevent _triple fault_, _double fault_ needs to be handled
+  correctly. Stack has to be valid (not on gaurd page) when _double
+  fault_ handler is invoked as it also requires stack to place stack
+  frame.
+- *Guard Page:* Special memory page at the bottom of stack to detect
+  stack overflow. This page is not mapped to any physical memory so
+  accessing it causes _page fault_.
+- *Interrupt Stack Table (IST):* List of 7 pointer to known good
+  stacks to which hardware can switch before calling handler
+  function. This can avoid the _triple fault_ in case, kernel stack
+  overflows and _double fault_ handler arguments (exception
+  stackframe) cannot be pushed to stack which will cause _triple
+  fault_ if stack is not switched. `options` field in IDT handler
+  entry specifies if and to which stack hardware should switch to.
+- *Task State Segment (TSS):* Data structure which holds 2 stack
+  tables - IST and Privilege Stack Table. Later is used to switch
+  stack when privilege level changes. Linux x86_64 only uses stack
+  table pointers and I/O port permission bitmap features of TSS.
+- TSS uses segmentation system so we need to add an entry to GDT.
+- *Global Descriptor Table:* Structure that contains segment of a
+  program. It was used for memory segmentation and to provide virtual
+  addresses before Paging was a thing. Still used for few things like
+  loading TSS and configuring user/kernel mode.
+- *Segment Selector:* An offset in GDT to specify which descriptor to
+  use, like `index * element size` in an array.
+- *Segment Selector Registers:* Used by processor to get different
+  segment selector values e.g. `CS`, `DS`, etc. Needs to be updated
+  once the GDT is loaded.
 
 ## Rust
 
@@ -118,9 +153,6 @@
 - Calling convention can be specified for a function e.g.
   `extern "C" fn`.
 - `x86_64` crate provides IDT and `ExceptionStackFrame` implementation.
-- Exceptions pass exception stackframe to handler function. Some also
-  pass a error code with stackframe.
-
 
 ## Implementation
 
@@ -270,7 +302,7 @@
   ```
   This will run all binaries named as `test-*.rs`.
 
-## Post 7 (CPU Exceptions)
+## Post 6 (CPU Exceptions)
 
 - Use `x86_64` crate to add exception handler function to IDT. Start
   with `breakpoint` and create a new module `interrupts` for handlers.
@@ -278,7 +310,17 @@
   `'static` lifetime and should be mutable, so use `lazy_static` to do
   load it.
 - Write a integration test for testing `breakpoint` exception.
--
+
+## Post 7 (Double Faults)
+
+- Write a handler for double fault.
+- Create a TSS global structure in a new module. Create a stack and set
+  it to some (0) IST index in this TSS.
+- Create GDT structure to load this TSS and update the segment
+  selector registers.
+- Point _double fault_ handler to this IST index.
+- Write integration test for testing if GDT and TSS are loaded and
+  stacking switching is working on stack overflow.
 
 ### Additional Notes on Rust
 
