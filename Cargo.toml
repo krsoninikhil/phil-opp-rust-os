@@ -10,6 +10,7 @@ volatile = "0.2.3"  # to specify memory read write as volatile
 spin = "0.4.9"  # provides spinlock
 uart_16550 = "0.1.0"  # for communicating with serial port
 x86_64 = "0.4.0"  # for writing to I/O ports
+pic8259_simple = "0.1.1"  # for configuring 8259 PIC
 
 [dependencies.lazy_static]
 version = "1.0"

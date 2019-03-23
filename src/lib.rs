@@ -13,3 +13,9 @@ pub unsafe fn exit_qemu() {
     let mut port = Port::<u8>::new(0xf4);
     port.write(0);  // exit status will be `(passed value << 1) | 1` i.e. `1`
 }
+
+pub fn hlt_loop() -> ! {
+    loop {
+        x86_64::instructions::hlt();
+    }
+}

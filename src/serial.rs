@@ -3,6 +3,7 @@ use core::fmt::Write;
 use uart_16550::SerialPort;
 use spin::Mutex;
 use lazy_static::lazy_static;
+use x86_64::instructions::interrupts;
 
 lazy_static! {
     // not create mutex like vga_buffer to ensure seria_port is initialized before first use
@@ -17,7 +18,9 @@ lazy_static! {
 pub fn _print(args: ::core::fmt::Arguments) {
     // `write_fmt` or `write_str` can be directly used as `Write`
     // trait is already implemented for `SerialPort`
-    SERIAL1.lock().write_fmt(args).expect("Printing to serial failed");  // use expect instead of unwrap to handle panic also
+    interrupts::without_interrupts(|| {  // to avoid deadlock if interrupt handler also calls this function
+        SERIAL1.lock().write_fmt(args).expect("Printing to serial failed");  // use expect instead of unwrap to handle panic also
+    });
 }
 
 #[macro_export]

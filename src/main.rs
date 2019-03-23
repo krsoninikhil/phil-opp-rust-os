@@ -3,8 +3,6 @@
 #![cfg_attr(test, allow(unused_imports))]
 
 use core::panic::PanicInfo;
-use core::fmt::Write;
-
 use phil_opp_rust_os::*;
 
 // called on panic, required because std is not linked and it won't
@@ -14,7 +12,7 @@ use phil_opp_rust_os::*;
 fn panic(info: &PanicInfo) -> ! {
     println!("{}", info);
 
-    loop {}
+    hlt_loop();
 }
 
 // entry point function, since on linux, linker looks for function
@@ -24,20 +22,17 @@ fn panic(info: &PanicInfo) -> ! {
 #[cfg(not(test))]
 #[no_mangle]  // to preserve the function name, name mangling needs to disabled for this function
 pub extern "C" fn _start() -> ! {
-    vga_buffer::WRITER.lock().write_byte(b'H');
-    vga_buffer::WRITER.lock().write_string("ello ");
-    vga_buffer::WRITER.lock().write_str("World! \n").unwrap();
-
-    write!(vga_buffer::WRITER.lock(), "Some numbers {}, {} \n", 42, 1.0/3.0).unwrap();
     print!("This is printed using {} macro.\n", "print!");
     println!("This is printed using {} macro. New line auto added.", "println!");
 
-    serial::SERIAL1.lock().write_str("Kirk to Bridge:\n").expect("Printing to serial failed");
     serial_print!("This is printed using {} macro\n", "serial_print");
     serial_println!("This is printed using {} macro", "serial_println");
 
     gdt::init();
     interrupts::init_idt();
+    unsafe { interrupts::PICS.lock().initialize(); }  // unsafe as misconfigured PIC can cause undefined behavior
+    x86_64::instructions::interrupts::enable();  // executes `sti` instruction - set interrupts
+
     x86_64::instructions::int3();
     println!("It did not crash on breakpoint!");
 
@@ -45,12 +40,19 @@ pub extern "C" fn _start() -> ! {
     // fault, since we don't have a handler for that, a double page
     // fault will be thrown; if IST is not implemented, then triple
     // fault be thrown i.e. system will reboot
-    fn a() {
-        a();
-    }
-    a();
+    // fn a() {
+    //     a();
+    // }
+    // a();
 
-    println!("It did not crash!");
+    // this can cause deadlock as PIT interrupt handler also have
+    // print statement and interrupt happens while print macro is executing
+    // loop {
+    //     print!("-");
+    //     for _ in 1..10000 {}
+    // }
 
-    loop {}
+    //println!("It did not crash!");
+
+    hlt_loop();
 }

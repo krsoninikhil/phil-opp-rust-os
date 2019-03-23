@@ -93,6 +93,27 @@
 - *Segment Selector Registers:* Used by processor to get different
   segment selector values e.g. `CS`, `DS`, etc. Needs to be updated
   once the GDT is loaded.
+- *Hardware Interrupts:* Async notification to CPU from attached
+  hardware devices.
+- *Interrupts Controller* are separately attached to CPU which
+  aggregates intrerrupts from all devices and notifies to CPU.
+- *Intel 8259 PIC* (Programmable Interrupts Controller) was used
+  before *APIC* but its interface still supported and is easier to
+  implement. Typically 2 of these were chained together with fixed
+  mapping to it's communication lines from 0-15.
+- Each PIC can be configured by 2 I/O ports - command and data.
+- CPU start listening to interrupts on executing `sti` instruction.
+- By default PIT (Programmable Interval Timer) interrupts are enabled
+  which needs to be handled if interrupts are enabled on CPU or a
+  double fault will occur in absence of handler.
+- PIC expect an explict 'end of interrupt' signal before it can send
+  next interrupt. EOI signal tells PIC that interrupt has been
+  processed. So handler function also needs to sent EOI signal.
+- *Deadlock* occurs when a thread try to aquire a lock that will never
+  become free.
+- Keyboard interrupts are also enabled by default and next interrupt
+  is blocked untill scancode of pressed key is read from keyboard's
+  data port.
 
 ## Rust
 
@@ -153,6 +174,11 @@
 - Calling convention can be specified for a function e.g.
   `extern "C" fn`.
 - `x86_64` crate provides IDT and `ExceptionStackFrame` implementation.
+- To avoid null related issues, Rust have `Option<T>` enum, which can
+  be `None` or `Some` with value of type `T`. Value from `Some` can be
+  extracted by pattern matching.
+- `if let` is short syntax for one arm pattern matching and simplify
+  getting value from `Some`.
 
 ## Implementation
 
@@ -321,6 +347,29 @@
 - Point _double fault_ handler to this IST index.
 - Write integration test for testing if GDT and TSS are loaded and
   stacking switching is working on stack overflow.
+
+## Post 8 (Hardware Interrupts)
+
+- Configure PICs to use vectors numbers that doesn't conflict with
+  exceptions i.e. 32-47. `pic8259_simple` crate can be used to do so. Add it as
+  dependency.
+- Initialize PICs with configured vector number offset.
+- Enable CPU interrupts.
+- Add a timer interrupt handler as timer interrupts are on by default.
+- Hanlder also need to notify end of interrupt to PIC.
+- Currently, deadlock can occur if interrupt handler tries to print
+  something when main thread have the writer lock as main thread will
+  wait for interrupt handler to finish which is waiting for lock to be
+  free.
+- This deadlock can be provoked by calling `print` on loop in main
+  function and having a `print` in handler too.
+- To avoid this, one solution is to disable interrupts while aquiring
+  a lock on writer mutex.
+- Use `hlt` instruction instead of infinite loop while not doing
+  anything to save hardware resoureces.
+- As of now, pressing any keyboard key will cause double fault as no
+  handler is present, so add a keyboard interrupt handler which also
+  reads the scancode.
 
 ### Additional Notes on Rust
 

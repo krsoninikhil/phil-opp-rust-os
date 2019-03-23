@@ -4,6 +4,7 @@ use core::fmt::Write;
 use volatile::Volatile;
 use spin::Mutex;
 use lazy_static::lazy_static;
+use x86_64::instructions::interrupts;
 
 const BUFFER_HEIGHT: usize = 25;
 const BUFFER_WIDTH: usize = 80;
@@ -144,7 +145,9 @@ macro_rules! print {
 }
 
 pub fn _print(args: fmt::Arguments) {
-    WRITER.lock().write_fmt(args).unwrap();
+    interrupts::without_interrupts(|| {
+        WRITER.lock().write_fmt(args).unwrap();
+    });
 }
 
 
