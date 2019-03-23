@@ -56,25 +56,25 @@ extern "x86-interrupt" fn timer_interrupt_handler(_stack_frame: &mut ExceptionSt
 
 extern "x86-interrupt" fn keyboard_interrupt_handler(_stack_frame: &mut ExceptionStackFrame) {
     use x86_64::instructions::port::Port;
+    use pc_keyboard::{Keyboard, ScancodeSet1, DecodedKey, layouts};
 
+    lazy_static! {
+        static ref KEYBOARD: spin::Mutex<Keyboard<layouts::Us104Key, ScancodeSet1>> =
+            spin::Mutex::new(Keyboard::new(layouts::Us104Key, ScancodeSet1));
+    }
+
+    let mut keyboard = KEYBOARD.lock();  // lock mutex before reading scancode
     let port = Port::new(0x60);
     let scancode: u8 = unsafe { port.read() };
 
-    let key = match scancode {
-        0x02 => Some('1'),
-        0x03 => Some('2'),
-        0x04 => Some('3'),
-        0x05 => Some('4'),
-        0x06 => Some('5'),
-        0x07 => Some('6'),
-        0x08 => Some('7'),
-        0x09 => Some('8'),
-        0x0a => Some('9'),
-        0x0b => Some('0'),
-        _ => None,
-    };
-    if let Some(n) = key {
-        print!("{}", n);
+    if let Ok(Some(key_event)) = keyboard.add_byte(scancode) {  // add_byte returns Result<Option<KeyEvent>>
+        if let Some(key) = keyboard.process_keyevent(key_event) {  // process_keyevent returns Option<DecodedKey>
+            match key {  // DecodedKey has two variants - Unicode(char) and RawKey(KeyCode)
+                DecodedKey::Unicode(c) => print!("{}", c),
+                DecodedKey::RawKey(c) => print!("{:?}", c),
+            }
+        }
     }
+
     unsafe { PICS.lock().notify_end_of_interrupt(KEYBOARD_INTERRUPT_ID); }
 }

@@ -328,7 +328,7 @@
   ```
   This will run all binaries named as `test-*.rs`.
 
-## Post 6 (CPU Exceptions)
+### Post 6 (CPU Exceptions)
 
 - Use `x86_64` crate to add exception handler function to IDT. Start
   with `breakpoint` and create a new module `interrupts` for handlers.
@@ -337,7 +337,7 @@
   load it.
 - Write a integration test for testing `breakpoint` exception.
 
-## Post 7 (Double Faults)
+### Post 7 (Double Faults)
 
 - Write a handler for double fault.
 - Create a TSS global structure in a new module. Create a stack and set
@@ -348,7 +348,7 @@
 - Write integration test for testing if GDT and TSS are loaded and
   stacking switching is working on stack overflow.
 
-## Post 8 (Hardware Interrupts)
+### Post 8 (Hardware Interrupts)
 
 - Configure PICs to use vectors numbers that doesn't conflict with
   exceptions i.e. 32-47. `pic8259_simple` crate can be used to do so. Add it as
@@ -370,8 +370,9 @@
 - As of now, pressing any keyboard key will cause double fault as no
   handler is present, so add a keyboard interrupt handler which also
   reads the scancode.
+- Add scancode to actual key mapping using `pc-keyboard` crate.
 
-### Additional Notes on Rust
+## Additional Notes on Rust
 
 - Variables are immutable by default.
 - Variable that holds the reference to a memory allocated in heap is
