@@ -114,6 +114,49 @@
 - Keyboard interrupts are also enabled by default and next interrupt
   is blocked untill scancode of pressed key is read from keyboard's
   data port.
+- *Memory Protection* ensures a program can only access memory allowed
+  for it. On ARM Cortex-M processors, _Memory Protection Unit (MPU)_
+  does this, on x86, _Segmentation_ and _Paging_ are two techniques.
+- *Segmentation:* It uses memory segment offset to address more memory
+  than whats possible by 16 bit addresses. Special segment registers
+  (`CS`, `DS`, `ES`, etc) contains index into descriptor table, which
+  cantains information about segement like offset, segment size and
+  permissions. A separate table for each process can provide process
+  isolation.
+- *Vertual Memory* address needs to be translated to the _Physical
+  Memory_ address. In segmentation, translation step is adding offset.
+- Segmentation causes problem of _fragmentation_.
+- *Paging* solves fragmentation by dividing vertual and physical
+  address space into small fixed size blocks (4Kb in x86) called
+  _Pages_ and _Frames_ respectively. This way large memory region can
+  be mapped to non-continous small frames.
+- *Internal Fragmentation* is still possible if required memory is
+  less than a page size, but it's much better than external fragmentation.
+- Page mapping is stored in table called *Page Table* instead of
+  registers as incase of segmentation.
+- Page numbers in Page Table are written with fixed interval size to
+  make accessing by processor easier. To save space on non-required
+  page numbers, Multilevel Page Tables are used, in which one table
+  points to another table which ultimately points to frame addresses.
+- In x86, 4 level Paging is used with 4kb page size and each page
+  table with 512 entries each of 8 bytes making a page table fit into
+  single page.
+- Each 8 bytes entry contains 52 bit physical address and rest are
+  used for flags in which seome are allowed to be used by OS.
+- `CR3` register contains address of top level table. And index of
+  Page table to look for is derived from vertual address itself. First
+  12 bits (0-11) represent offset in the final page, next 36 bits
+  (12-47) are 9 bit table index for level 1 to level 4. Bits 48-64 are
+  discarded. So only 64 bit system actually uses only 48 bits for
+  addresses.
+- Last few address translations are cached in *Translation Lookaside
+  Bufffer* or *TLB*.
+- Unlike other caches, TLB is not fully transparent, so on each page
+  table update, kernel needs to update TLB using `invlpg` instruction
+  which removes the specifies page translation from TLB. Reloading
+  `CR3` register flushes the TLB.
+- If a page fault happens, CPU sets `CR2` register to the accessed
+  address that caused it.
 
 ## Rust
 
@@ -371,6 +414,10 @@
   handler is present, so add a keyboard interrupt handler which also
   reads the scancode.
 - Add scancode to actual key mapping using `pc-keyboard` crate.
+
+### Post 9 (Introduction To Paging)
+
+- Add page fault exception handler and try accessing an invalid address.
 
 ## Additional Notes on Rust
 

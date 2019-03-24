@@ -52,7 +52,12 @@ pub extern "C" fn _start() -> ! {
     //     for _ in 1..10000 {}
     // }
 
-    //println!("It did not crash!");
+    let (l4_page_table, _) = x86_64::registers::control::Cr3::read();
+    println!("Level 4 page table address: {:?}", l4_page_table.start_address());
+    // this causes page fault due to write on invalid address
+    // let ptr = 0xdeadbeef as *mut u32;
+    // unsafe { *ptr = 42; }
 
+    println!("It did not crash!");
     hlt_loop();
 }

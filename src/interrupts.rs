@@ -3,7 +3,8 @@
 // (`cargo test`)
 #![cfg(not(windows))]
 
-use x86_64::structures::idt::{InterruptDescriptorTable, ExceptionStackFrame};
+use x86_64::structures::idt::{InterruptDescriptorTable, ExceptionStackFrame, PageFaultErrorCode};
+use x86_64::registers::control::Cr2;
 use lazy_static::lazy_static;
 use pic8259_simple::ChainedPics;
 use spin;
@@ -27,6 +28,7 @@ lazy_static! {
             idt.double_fault.set_handler_fn(double_fault_handler)
                 .set_stack_index(crate::gdt::DOUBLE_FAULT_IST_INDEX);
         }
+        idt.page_fault.set_handler_fn(page_fault_handler);
         idt[usize::from(TIMER_INTERRUPT_ID)].set_handler_fn(timer_interrupt_handler);
         idt[usize::from(KEYBOARD_INTERRUPT_ID)].set_handler_fn(keyboard_interrupt_handler);
         idt
@@ -46,6 +48,16 @@ extern "x86-interrupt" fn double_fault_handler(
     _error_code: u64,
 ) {
     println!("Exception: Double Fault\n{:#?}", stack_frame);
+    crate::hlt_loop();
+}
+
+extern "x86-interrupt" fn page_fault_handler(
+    stack_frame: &mut ExceptionStackFrame,
+    _error_code: PageFaultErrorCode,
+) {
+    println!("Exception: Page Fault\n{:#?}", stack_frame);
+    println!("Accessed Address: {:?}", Cr2::read());
+
     crate::hlt_loop();
 }
 
