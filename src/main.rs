@@ -33,7 +33,7 @@ pub extern "C" fn _start() -> ! {
     unsafe { interrupts::PICS.lock().initialize(); }  // unsafe as misconfigured PIC can cause undefined behavior
     x86_64::instructions::interrupts::enable();  // executes `sti` instruction - set interrupts
 
-    x86_64::instructions::int3();
+    x86_64::instructions::interrupts::int3();
     println!("It did not crash on breakpoint!");
 
     // this will cause kernel stack overflow, which will throw page

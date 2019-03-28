@@ -123,10 +123,10 @@
   cantains information about segement like offset, segment size and
   permissions. A separate table for each process can provide process
   isolation.
-- *Vertual Memory* address needs to be translated to the _Physical
+- *Virtual Memory* address needs to be translated to the _Physical
   Memory_ address. In segmentation, translation step is adding offset.
 - Segmentation causes problem of _fragmentation_.
-- *Paging* solves fragmentation by dividing vertual and physical
+- *Paging* solves fragmentation by dividing virtual and physical
   address space into small fixed size blocks (4Kb in x86) called
   _Pages_ and _Frames_ respectively. This way large memory region can
   be mapped to non-continous small frames.
@@ -144,7 +144,7 @@
 - Each 8 bytes entry contains 52 bit physical address and rest are
   used for flags in which seome are allowed to be used by OS.
 - `CR3` register contains address of top level table. And index of
-  Page table to look for is derived from vertual address itself. First
+  Page table to look for is derived from virtual address itself. First
   12 bits (0-11) represent offset in the final page, next 36 bits
   (12-47) are 9 bit table index for level 1 to level 4. Bits 48-64 are
   discarded. So only 64 bit system actually uses only 48 bits for
@@ -157,6 +157,7 @@
   `CR3` register flushes the TLB.
 - If a page fault happens, CPU sets `CR2` register to the accessed
   address that caused it.
+-
 
 ## Rust
 
@@ -418,6 +419,11 @@
 ### Post 9 (Introduction To Paging)
 
 - Add page fault exception handler and try accessing an invalid address.
+
+### Post 10 (Paging Implementation)
+
+- Update `bootloader` crate version to `0.4.0` and `x86_64` crate to
+  `0.5.3`.
 
 ## Additional Notes on Rust
 

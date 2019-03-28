@@ -5,11 +5,11 @@ authors = ["Nikhil Soni <krsoninikhil@gmail.com>"]
 edition = "2018"
 
 [dependencies]
-bootloader = "0.3.12"  # allow bootloader to load our kernel
+bootloader = "0.4.0"  # allow bootloader to load our kernel
 volatile = "0.2.3"  # to specify memory read write as volatile
 spin = "0.4.9"  # provides spinlock
 uart_16550 = "0.1.0"  # for communicating with serial port
-x86_64 = "0.4.0"  # for writing to I/O ports
+x86_64 = "0.5.2"  # for writing to I/O ports
 pic8259_simple = "0.1.1"  # for configuring 8259 PIC
 pc-keyboard = "0.3.1"  # for scancode to key mapping
 

@@ -19,7 +19,7 @@ fn panic(info: &PanicInfo) -> ! {
 #[no_mangle]
 pub extern "C" fn _start() -> ! {
     interrupts::init_idt();  // load IDT
-    x86_64::instructions::int3();  // cause breakpoint exception
+    x86_64::instructions::interrupts::int3();  // cause breakpoint exception
     serial_println!("ok");  // if this executes, exception has been handled correctly
 
     unsafe { exit_qemu(); }

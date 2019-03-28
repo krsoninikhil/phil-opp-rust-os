@@ -4,7 +4,7 @@
 #![feature(abi_x86_interrupt)]
 
 use core::panic::PanicInfo;
-use x86_64::structures::idt::{InterruptDescriptorTable, ExceptionStackFrame};
+use x86_64::structures::idt::{InterruptDescriptorTable, InterruptStackFrame};
 use lazy_static::lazy_static;
 
 use phil_opp_rust_os::{exit_qemu, serial_println, gdt};
@@ -57,7 +57,7 @@ fn init_idt() {
 }
 
 extern "x86-interrupt" fn double_fault_handler(
-    _stack_frame: &mut ExceptionStackFrame,
+    _stack_frame: &mut InterruptStackFrame,
     _error_code: u64
 ) {
     serial_println!("ok");
