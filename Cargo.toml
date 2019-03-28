@@ -5,7 +5,7 @@ authors = ["Nikhil Soni <krsoninikhil@gmail.com>"]
 edition = "2018"
 
 [dependencies]
-bootloader = "0.4.0"  # allow bootloader to load our kernel
+bootloader = {version = "0.4.0", features = ["map_physical_memory"]}  # allow bootimage tool to load our kernel
 volatile = "0.2.3"  # to specify memory read write as volatile
 spin = "0.4.9"  # provides spinlock
 uart_16550 = "0.1.0"  # for communicating with serial port

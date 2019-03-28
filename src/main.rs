@@ -3,6 +3,7 @@
 #![cfg_attr(test, allow(unused_imports))]
 
 use core::panic::PanicInfo;
+use bootloader::BootInfo;
 use phil_opp_rust_os::*;
 
 // called on panic, required because std is not linked and it won't
@@ -19,9 +20,12 @@ fn panic(info: &PanicInfo) -> ! {
 // named `_start` by default, on macOS, linker looks for `main`
 // function; so change this function name to `main` if compiling on
 // macOS
+// #[no_mangle]  // to preserve the function name, name mangling needs to disabled for this function
+// pub extern "C" fn _start() -> ! {  // a better implementation of `_start` is provided by `bootloader` crate, so use that instead
+bootloader::entry_point!(kernel_main);
+
 #[cfg(not(test))]
-#[no_mangle]  // to preserve the function name, name mangling needs to disabled for this function
-pub extern "C" fn _start() -> ! {
+fn kernel_main(boot_info: &'static BootInfo) -> ! {
     print!("This is printed using {} macro.\n", "print!");
     println!("This is printed using {} macro. New line auto added.", "println!");
 
@@ -52,12 +56,14 @@ pub extern "C" fn _start() -> ! {
     //     for _ in 1..10000 {}
     // }
 
-    let (l4_page_table, _) = x86_64::registers::control::Cr3::read();
-    println!("Level 4 page table address: {:?}", l4_page_table.start_address());
-    // this causes page fault due to write on invalid address
-    // let ptr = 0xdeadbeef as *mut u32;
-    // unsafe { *ptr = 42; }
-
+    let l4_table = unsafe {
+        memory::active_level4_table(boot_info.physical_memory_offset)
+    };
+    for (i, entry) in l4_table.iter().enumerate() {
+        if !entry.is_unused() {
+            println!("L4 table entry ({}): {:?}", i, entry);
+        }
+    }
     println!("It did not crash!");
     hlt_loop();
 }

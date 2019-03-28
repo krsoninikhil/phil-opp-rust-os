@@ -157,7 +157,21 @@
   `CR3` register flushes the TLB.
 - If a page fault happens, CPU sets `CR2` register to the accessed
   address that caused it.
--
+
+- If kernel is running in virtual address space, page table frames
+  cannot be accessed directly, they need to mapped to virtual
+  addresses which can be done in multiple ways like:
+  - *Identity Mapping:* Map page table frames to same physical
+    address.
+  - *Map at a fixed offset:* Map page tables frames to a fixed offset
+    in virtual address space to physical address.
+  - *Map the complete physical memory:* Map and store all physical
+    memory mapping. Huge pages can also be used to descrease required
+    translations.
+  - *Temporary Mapping:* Map page tables only when they are accessed.
+  - *Recursive Page Tables:* Map a page table recursively to itself
+    from level 4 to level 1. This way page tables can be written on to
+    by tricking CPU into thinking that it's writing on physical frame.
 
 ## Rust
 
@@ -424,6 +438,29 @@
 
 - Update `bootloader` crate version to `0.4.0` and `x86_64` crate to
   `0.5.3`.
+- Bootloader creates the page tables and with `map_physical_memory`
+  cargo feature enabled, it can map all physical memory to virtual
+  addresses. It pass this information while calling entrypoint
+  function.
+- Bootloader also implements `_start` function in it's `entry_point`
+  macro with type checking so use that with normal Rust function
+  instead of writing our own `_start`.
+- Level 4 page table can be accessed by doing - read `CR3`
+  register, add physical memory offset provided by `BootInfo` and then
+  create a mutable pointer to resultant value of `VirtAddr` type from
+  `x86_64` crate. Create a function to do this.
+- This level 4 page table pointer can be iterated over to get all the
+  table entries.
+- Each entry can be used to access lower level (3, then 2, then 1)
+  page table in same way. Entry on level 1 will be pointing to
+  physical frame.
+- Same process can be used to translate a virtual address to physical
+  address by using only the table entries defined as indices in
+  virtual address itself. Huge pages won't work this way though.
+- If complete physical memory is mapped, `x86_64` crate provides a
+  trait `MapperAllSizes` with methods to translate addresses and map
+  new one. `MappedPageTable` type implements it. So use this to
+  translation and mapping.
 
 ## Additional Notes on Rust
 
