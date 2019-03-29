@@ -35,19 +35,19 @@
   I/O like `0xb8000` for VGA buffer or port mapped I/O which uses
   different instructions (`in`, `out`) and address space than simple
   memory access.
-- *CPU Exceptions:* When something illegal happens like devide by 0 or
+- **CPU Exceptions:** When something illegal happens like devide by 0 or
   accessing illegal memory addresses, CPU throws [around 20 types][3]
   of exeption e.g. Page fault, double fault, triple faults etc.
 - Handler functions for these exceptions are listed in table called
   IDT (Interrupt Descriptor Table), in a 16 bytes predefined format at
   predefined index.
-- *Calling conventions* specify the details of function calls like
+- **Calling conventions** specify the details of function calls like
   where function parameters are place or how results are
   returned. They also defines *preserved* and *scratch* registers. `C`
   uses conventions specified in System V ABI.
-- *Preserved Registers* are backed up by the called funtion
+- **Preserved Registers** are backed up by the called funtion
   i.e. _callee-saved_.
-- *Scratch Registers* are backed up by the caller function before
+- **Scratch Registers** are backed up by the caller function before
   calling another function i.e. _caller-saved_.
 - Since exception handler might run in different context, an specific
   convetion is used.
@@ -56,49 +56,49 @@
   value.
 - Exceptions pass exception stackframe to handler function. Some also
   pass a error code with stackframe.
-- *Breakpoint Exception:* Defined at index 3 in IDT, it occurs when
+- **Breakpoint Exception:** Defined at index 3 in IDT, it occurs when
   `int3` instruction is executed on CPU. Debugger replaces the current
   instruction with `int3` when breakpoint needs to be set.
-- *Double fault* exception is thrown when their is error in calling
+- **Double fault** exception is thrown when their is error in calling
   original exception handler i.e. a particular exception is thrown
   after a specific exception e.g. a _page fault_ after _page fault_
   will cause _double fault_.
-- If double fault is not handled too, fatal *triple fault* is thrown,
+- If double fault is not handled too, fatal _triple fault_ is thrown,
   which can't be caught and most hardware react with system reset.
 - To prevent _triple fault_, _double fault_ needs to be handled
   correctly. Stack has to be valid (not on gaurd page) when _double
   fault_ handler is invoked as it also requires stack to place stack
   frame.
-- *Guard Page:* Special memory page at the bottom of stack to detect
+- **Guard Page:** Special memory page at the bottom of stack to detect
   stack overflow. This page is not mapped to any physical memory so
   accessing it causes _page fault_.
-- *Interrupt Stack Table (IST):* List of 7 pointer to known good
+- **Interrupt Stack Table (IST):** List of 7 pointer to known good
   stacks to which hardware can switch before calling handler
   function. This can avoid the _triple fault_ in case, kernel stack
   overflows and _double fault_ handler arguments (exception
   stackframe) cannot be pushed to stack which will cause _triple
   fault_ if stack is not switched. `options` field in IDT handler
   entry specifies if and to which stack hardware should switch to.
-- *Task State Segment (TSS):* Data structure which holds 2 stack
+- **Task State Segment (TSS):** Data structure which holds 2 stack
   tables - IST and Privilege Stack Table. Later is used to switch
   stack when privilege level changes. Linux x86_64 only uses stack
   table pointers and I/O port permission bitmap features of TSS.
 - TSS uses segmentation system so we need to add an entry to GDT.
-- *Global Descriptor Table:* Structure that contains segment of a
+- **Global Descriptor Table:** Structure that contains segment of a
   program. It was used for memory segmentation and to provide virtual
   addresses before Paging was a thing. Still used for few things like
   loading TSS and configuring user/kernel mode.
-- *Segment Selector:* An offset in GDT to specify which descriptor to
+- **Segment Selector:** An offset in GDT to specify which descriptor to
   use, like `index * element size` in an array.
-- *Segment Selector Registers:* Used by processor to get different
+- **Segment Selector Registers:** Used by processor to get different
   segment selector values e.g. `CS`, `DS`, etc. Needs to be updated
   once the GDT is loaded.
-- *Hardware Interrupts:* Async notification to CPU from attached
+- **Hardware Interrupts:** Async notification to CPU from attached
   hardware devices.
-- *Interrupts Controller* are separately attached to CPU which
+- **Interrupts Controller** are separately attached to CPU which
   aggregates intrerrupts from all devices and notifies to CPU.
-- *Intel 8259 PIC* (Programmable Interrupts Controller) was used
-  before *APIC* but its interface still supported and is easier to
+- **Intel 8259 PIC** (Programmable Interrupts Controller) was used
+  before _APIC_ but its interface still supported and is easier to
   implement. Typically 2 of these were chained together with fixed
   mapping to it's communication lines from 0-15.
 - Each PIC can be configured by 2 I/O ports - command and data.
@@ -109,28 +109,28 @@
 - PIC expect an explict 'end of interrupt' signal before it can send
   next interrupt. EOI signal tells PIC that interrupt has been
   processed. So handler function also needs to sent EOI signal.
-- *Deadlock* occurs when a thread try to aquire a lock that will never
+- **Deadlock** occurs when a thread try to aquire a lock that will never
   become free.
 - Keyboard interrupts are also enabled by default and next interrupt
   is blocked untill scancode of pressed key is read from keyboard's
   data port.
-- *Memory Protection* ensures a program can only access memory allowed
+- **Memory Protection** ensures a program can only access memory allowed
   for it. On ARM Cortex-M processors, _Memory Protection Unit (MPU)_
   does this, on x86, _Segmentation_ and _Paging_ are two techniques.
-- *Segmentation:* It uses memory segment offset to address more memory
+- **Segmentation:** It uses memory segment offset to address more memory
   than whats possible by 16 bit addresses. Special segment registers
   (`CS`, `DS`, `ES`, etc) contains index into descriptor table, which
   cantains information about segement like offset, segment size and
   permissions. A separate table for each process can provide process
   isolation.
-- *Virtual Memory* address needs to be translated to the _Physical
+- **Virtual Memory** address needs to be translated to the _Physical
   Memory_ address. In segmentation, translation step is adding offset.
 - Segmentation causes problem of _fragmentation_.
-- *Paging* solves fragmentation by dividing virtual and physical
+- **Paging** solves fragmentation by dividing virtual and physical
   address space into small fixed size blocks (4Kb in x86) called
   _Pages_ and _Frames_ respectively. This way large memory region can
   be mapped to non-continous small frames.
-- *Internal Fragmentation* is still possible if required memory is
+- **Internal Fragmentation** is still possible if required memory is
   less than a page size, but it's much better than external fragmentation.
 - Page mapping is stored in table called *Page Table* instead of
   registers as incase of segmentation.
@@ -149,27 +149,26 @@
   (12-47) are 9 bit table index for level 1 to level 4. Bits 48-64 are
   discarded. So only 64 bit system actually uses only 48 bits for
   addresses.
-- Last few address translations are cached in *Translation Lookaside
-  Bufffer* or *TLB*.
+- Last few address translations are cached in **Translation Lookaside
+  Bufffer** or **TLB**.
 - Unlike other caches, TLB is not fully transparent, so on each page
   table update, kernel needs to update TLB using `invlpg` instruction
   which removes the specifies page translation from TLB. Reloading
   `CR3` register flushes the TLB.
 - If a page fault happens, CPU sets `CR2` register to the accessed
   address that caused it.
-
 - If kernel is running in virtual address space, page table frames
   cannot be accessed directly, they need to mapped to virtual
   addresses which can be done in multiple ways like:
-  - *Identity Mapping:* Map page table frames to same physical
+  - **Identity Mapping:** Map page table frames to same physical
     address.
-  - *Map at a fixed offset:* Map page tables frames to a fixed offset
+  - **Map at a fixed offset:** Map page tables frames to a fixed offset
     in virtual address space to physical address.
-  - *Map the complete physical memory:* Map and store all physical
+  - **Map the complete physical memory:** Map and store all physical
     memory mapping. Huge pages can also be used to descrease required
     translations.
-  - *Temporary Mapping:* Map page tables only when they are accessed.
-  - *Recursive Page Tables:* Map a page table recursively to itself
+  - **Temporary Mapping:** Map page tables only when they are accessed.
+  - **Recursive Page Tables:** Map a page table recursively to itself
     from level 4 to level 1. This way page tables can be written on to
     by tricking CPU into thinking that it's writing on physical frame.
 
