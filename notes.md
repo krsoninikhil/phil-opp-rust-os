@@ -461,6 +461,19 @@
   trait `MapperAllSizes` with methods to translate addresses and map
   new one. `MappedPageTable` type implements it. So use this to
   translation and mapping.
+- To create new mapping, create a physical frame containing the
+  physical address, a page containing virtual address that requires
+  mapping and use `Mapper` or `MapperAllSizes` implementation along
+  with appropriate flags (present and writable) and frame allocator to
+  do the mapping.
+- Frame allocator required in above step contains an itertor of usable
+  physical frames which are used by mapper to create intermediate page
+  tables. `MemoryMap`, a list of `MemoryRegion` passed to the entry
+  point by bootloader, can be used to create these frames for Frame
+  allocator.
+- Try mapping a page containing a random address (`0xdeadbeef`) to the
+  VGA buffer physical address (`0xb8000`). Now, anything written to
+  `0xdeadbeef` should appear on screen.
 
 ## Additional Notes on Rust
 

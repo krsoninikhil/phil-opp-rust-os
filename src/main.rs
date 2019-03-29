@@ -4,6 +4,7 @@
 
 use core::panic::PanicInfo;
 use bootloader::BootInfo;
+use x86_64::structures::paging::{MapperAllSizes, Page};
 use phil_opp_rust_os::*;
 
 // called on panic, required because std is not linked and it won't
@@ -56,14 +57,25 @@ fn kernel_main(boot_info: &'static BootInfo) -> ! {
     //     for _ in 1..10000 {}
     // }
 
-    let l4_table = unsafe {
-        memory::active_level4_table(boot_info.physical_memory_offset)
-    };
-    for (i, entry) in l4_table.iter().enumerate() {
-        if !entry.is_unused() {
-            println!("L4 table entry ({}): {:?}", i, entry);
-        }
+    let mut mapper = unsafe { memory::init(boot_info.physical_memory_offset) };  // create memory mapper
+    let mut frame_allocator = memory::init_frame_allocator(&boot_info.memory_map);
+
+    // map page with a random address to VGA buffer frame
+    let page = Page::containing_address(x86_64::VirtAddr::new(0xdeadbeef));
+    memory::create_example_mapping(page, &mut mapper, &mut frame_allocator);
+
+    // try writing to mapped page
+    let page_ptr: *mut u64 = page.start_address().as_mut_ptr();
+    unsafe { page_ptr.offset(400).write_volatile(0x_f021_f077_f065_f04e) };
+
+    // try converting these virtual addresses into physical
+    let addresses = [0xb8000, 0x20010a, boot_info.physical_memory_offset];
+    for &address in &addresses {
+        let virt = x86_64::VirtAddr::new(address);
+        let phys = mapper.translate_addr(virt);
+        println!("{:?} -> {:?}", virt, phys);
     }
+
     println!("It did not crash!");
     hlt_loop();
 }
